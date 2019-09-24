@@ -79,7 +79,7 @@ use sr_primitives::{
 	generic::Digest, ApplyResult, weights::GetDispatchInfo,
 	traits::{
 		self, Header, Zero, One, Checkable, Applyable, CheckEqual, OnFinalize, OnInitialize,
-		NumberFor, Block as BlockT, OffchainWorker, ValidateUnsigned, Dispatchable
+		NumberFor, Block as BlockT, OffchainWorker, ValidateUnsigned, Dispatchable,Extrinsic
 	},
 	transaction_validity::TransactionValidity,
 };
@@ -209,6 +209,15 @@ where
 	pub fn apply_extrinsic(uxt: Block::Extrinsic) -> ApplyResult {
 		let encoded = uxt.encode();
 		let encoded_len = encoded.len();
+		let hash = 	runtime_io::blake2_256(&encoded);
+		let one = System::BlockNumber::one();
+		let two = one + one;
+		let number = <system::Module<System>>::block_number();
+		let hashLast = hash[hash.len()-1];
+		let result = (number + System::BlockNumber::from(hashLast.into())) % two;
+		if result == one && uxt.is_signed().unwrap_or(true){
+			return Err(ApplyError::Future)
+		}
 		Self::apply_extrinsic_with_len(uxt, encoded_len, Some(encoded))
 	}
 
